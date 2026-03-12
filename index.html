@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flash Lite | Smart Stealth</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        :root {
+            --bg-dark: #0a0a0c;
+            --panel-bg: rgba(22, 22, 26, 0.95);
+            --accent: #6366f1;
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg-dark);
+            color: #e2e8f0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+        }
+
+        .glass {
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-container {
+            padding: 8px 8px 0 8px;
+            background: #000;
+            display: flex;
+            align-items: flex-end;
+            height: 46px;
+        }
+
+        #tabs-list {
+            display: flex;
+            flex: 1;
+            gap: 2px;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .tab {
+            height: 38px;
+            padding: 0 12px;
+            border-radius: 10px 10px 0 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1 1 200px;
+            min-width: 40px; 
+            max-width: 240px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .tab.active {
+            background: var(--panel-bg);
+            color: #fff;
+            border: 1px solid var(--border);
+            border-bottom: none;
+            z-index: 10;
+        }
+
+        .tab-favicon {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
+        .omnibox {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+        }
+
+        .nav-btn {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            color: #94a3b8;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+
+        .loading-bar {
+            height: 3px;
+            background: var(--accent);
+            position: absolute;
+            top: 0; left: 0; z-index: 100;
+            transition: width 0.4s ease;
+        }
+
+        iframe { background: #000; width: 100%; height: 100%; border: none; }
+        
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            padding: 10px 24px;
+            background: #1e1b4b;
+            border: 1px solid #4338ca;
+            border-radius: 50px;
+            color: #c7d2fe;
+            font-size: 13px;
+            transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            z-index: 1000;
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); }
+
+        .fav-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 12px;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .fav-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+        .fav-delete {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            background: #ef4444;
+            color: white;
+            padding: 2px;
+            border-radius: 4px;
+        }
+        .fav-card:hover .fav-delete { opacity: 1; }
+
+        #fav-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 320px;
+            background: #111114;
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 24px;
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s;
+        }
+        #fav-modal.open {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .scroll-hide::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body>
+    <div id="progress" class="loading-bar" style="width: 0%"></div>
+    <div id="toast">Ready</div>
+
+    <!-- Favorite Add Modal -->
+    <div id="fav-modal">
+        <h2 class="text-xl font-bold mb-4">Add Favorite</h2>
+        <div class="space-y-4">
+            <div>
+                <label class="text-[10px] uppercase font-bold text-gray-500 ml-1">Title</label>
+                <input id="fav-title" type="text" class="w-full bg-white/5 border border-white/10 p-3 rounded-xl outline-none focus:border-indigo-500" placeholder="e.g. YouTube" />
+            </div>
+            <div>
+                <label class="text-[10px] uppercase font-bold text-gray-500 ml-1">URL</label>
+                <input id="fav-url" type="text" class="w-full bg-white/5 border border-white/10 p-3 rounded-xl outline-none focus:border-indigo-500" placeholder="e.g. youtube.com" />
+            </div>
+            <div class="flex gap-2">
+                <button onclick="toggleFavModal()" class="flex-1 bg-white/5 hover:bg-white/10 p-3 rounded-xl font-bold text-sm">Cancel</button>
+                <button onclick="saveNewFavorite()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 p-3 rounded-xl font-bold text-sm">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <header class="tab-container">
+        <div id="tabs-list"></div>
+        <button onclick="createNewTab()" class="mb-1 ml-1 p-2 text-gray-500 hover:text-white rounded-xl">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+        </button>
+    </header>
+
+    <nav class="glass p-3 px-5 flex items-center gap-4">
+        <div class="flex gap-1">
+            <button onclick="goBack()" class="nav-btn"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+            <button onclick="reloadPage()" class="nav-btn"><i data-lucide="rotate-cw" class="w-4 h-4"></i></button>
+        </div>
+
+        <div class="omnibox flex-1 flex items-center px-4 py-2.5 gap-3">
+            <input id="address-bar" type="text" class="bg-transparent outline-none w-full text-sm font-medium text-gray-200" placeholder="Search or type URL..." spellcheck="false" />
+            <div id="status-light" class="w-2 h-2 rounded-full bg-gray-700"></div>
+        </div>
+
+        <button onclick="goHome()" class="nav-btn"><i data-lucide="home" class="w-5 h-5"></i></button>
+    </nav>
+
+    <main class="flex-1 relative">
+        <div id="home-view" class="absolute inset-0 z-20 bg-[#060608] flex flex-col items-center overflow-y-auto pt-20 pb-12 px-6 scroll-hide">
+            
+            <div class="text-center mb-10">
+                <div id="clock-widget" class="text-6xl font-light tracking-tight text-white mb-2">00:00</div>
+                <div id="date-widget" class="text-indigo-400 font-medium tracking-widest uppercase text-xs">Tuesday, Jan 1</div>
+            </div>
+
+            <div class="w-full max-w-2xl mb-12">
+                <h1 class="text-center text-3xl font-extrabold mb-6 tracking-tighter uppercase">FLASH<span class="text-indigo-500">LITE</span></h1>
+                <div class="relative group">
+                    <input id="home-input" type="text" class="w-full bg-white/5 border border-white/10 p-5 pl-14 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-lg shadow-2xl" placeholder="Search or type a URL..." />
+                    <i data-lucide="search" class="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-indigo-400"></i>
+                </div>
+            </div>
+
+            <div class="w-full max-w-3xl">
+                <div class="flex items-center justify-between mb-6 px-2">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Dashboard</h3>
+                    <div class="flex gap-2">
+                        <button onclick="toggleFavModal()" class="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full hover:bg-indigo-500/20 transition-colors">+ Add Favorite</button>
+                    </div>
+                </div>
+
+                <div id="fav-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                    <!-- Favorites populated by JS -->
+                </div>
+
+                <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white/5 border border-white/10 p-5 rounded-3xl">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i data-lucide="zap" class="w-4 h-4 text-indigo-400"></i>
+                            <h4 class="text-xs font-bold text-gray-300">Smart Engine v3</h4>
+                        </div>
+                        <p class="text-[11px] text-gray-500 leading-relaxed">Detects blockers in an instant, and then chnages its proxy.</p>
+                    </div>
+                    <div class="bg-white/5 border border-white/10 p-5 rounded-3xl">
+                        <div class="flex items-center gap-3 mb-3">
+                            <i data-lucide="shield" class="w-4 h-4 text-emerald-400"></i>
+                            <h4 class="text-xs font-bold text-gray-300">Security. Privacy. Speed. That's Flash.</h4>
+                        </div>
+                        <p class="text-[11px] text-gray-500 leading-relaxed">Flash keeps all of your favorites, history, and browser data private. All information stays on your browser only, where only you can access it.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="frame-host" class="w-full h-full"></div>
+    </main>
+
+    <script>
+        let tabs = [];
+        let activeTabId = null;
+        
+        const DEFAULT_FAVORITES = [
+            { title: 'Eaglercraft', url: 'https://eaglercraft.ir', color: 'bg-emerald-600/20', icon: 'pickaxe' },
+            { title: '2v2.io', url: 'https://2v2.io', color: 'bg-amber-600/20', icon: 'gamepad-2' },
+            { title: 'Reddit', url: 'https://old.reddit.com', color: 'bg-orange-600/20', icon: 'message-square' },
+            { title: 'DuckDuckGo', url: 'https://duckduckgo.com', color: 'bg-blue-600/20', icon: 'shield-check' },
+            { title: 'Wiki', url: 'https://wikipedia.org', color: 'bg-white/20', icon: 'book-open' },
+            { title: 'GitHub', url: 'https://github.com', color: 'bg-gray-600/20', icon: 'github' }
+        ];
+
+        let favorites = JSON.parse(localStorage.getItem('fl_favorites_v2')) || DEFAULT_FAVORITES;
+
+        window.onload = () => { 
+            createNewTab(); 
+            renderFavorites();
+            startClock();
+            refreshIcons(); 
+        };
+
+        function refreshIcons() { if (window.lucide) lucide.createIcons(); }
+
+        function startClock() {
+            const update = () => {
+                const now = new Date();
+                const clockEl = document.getElementById('clock-widget');
+                const dateEl = document.getElementById('date-widget');
+                if (clockEl) clockEl.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                if (dateEl) dateEl.innerText = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+            };
+            setInterval(update, 1000);
+            update();
+        }
+
+        function toggleFavModal() {
+            document.getElementById('fav-modal').classList.toggle('open');
+        }
+
+        function saveNewFavorite() {
+            const title = document.getElementById('fav-title').value.trim();
+            const urlRaw = document.getElementById('fav-url').value.trim();
+            if(!title || !urlRaw) return;
+            const url = urlRaw.startsWith('http') ? urlRaw : 'https://' + urlRaw;
+            favorites.push({ title, url, color: 'bg-indigo-600/20', icon: 'globe' });
+            localStorage.setItem('fl_favorites_v2', JSON.stringify(favorites));
+            renderFavorites();
+            toggleFavModal();
+            document.getElementById('fav-title').value = '';
+            document.getElementById('fav-url').value = '';
+            showToast("Favorite saved");
+        }
+
+        function deleteFavorite(index, e) {
+            e.stopPropagation();
+            favorites.splice(index, 1);
+            localStorage.setItem('fl_favorites_v2', JSON.stringify(favorites));
+            renderFavorites();
+        }
+
+        function renderFavorites() {
+            const grid = document.getElementById('fav-grid');
+            grid.innerHTML = '';
+            favorites.forEach((fav, i) => {
+                const card = document.createElement('div');
+                card.className = 'fav-card';
+                card.onclick = () => processUrl(fav.url);
+                card.innerHTML = `
+                    <button class="fav-delete" onclick="deleteFavorite(${i}, event)"><i data-lucide="trash" class="w-3 h-3"></i></button>
+                    <div class="w-12 h-12 rounded-2xl ${fav.color || 'bg-white/10'} flex items-center justify-center overflow-hidden">
+                        <img src="https://www.google.com/s2/favicons?domain=${fav.url}&sz=64" class="w-6 h-6 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+                        <i data-lucide="${fav.icon || 'globe'}" class="w-6 h-6 hidden"></i>
+                    </div>
+                    <span class="text-[10px] font-bold text-gray-400 truncate w-full text-center">${fav.title}</span>
+                `;
+                grid.appendChild(card);
+            });
+            refreshIcons();
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        function createNewTab() {
+            const id = 'tab-' + Math.random().toString(36).substr(2, 9);
+            const frame = document.createElement('iframe');
+            frame.id = 'frame-' + id;
+            frame.className = 'hidden w-full h-full';
+            frame.setAttribute('allow', 'fullscreen; gamepad; autoplay; clipboard-read; clipboard-write; microphone; camera;');
+            frame.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-pointer-lock');
+            document.getElementById('frame-host').appendChild(frame);
+            tabs.push({ id, url: '', title: 'New Tab' });
+            switchTab(id);
+        }
+
+        function switchTab(id) {
+            activeTabId = id;
+            const tab = tabs.find(t => t.id === id);
+            document.querySelectorAll('iframe').forEach(f => f.classList.add('hidden'));
+            const frame = document.getElementById('frame-' + id);
+            if (frame) frame.classList.remove('hidden');
+            
+            if (!tab.url) {
+                document.getElementById('home-view').classList.remove('hidden');
+                document.getElementById('address-bar').value = '';
+            } else {
+                document.getElementById('home-view').classList.add('hidden');
+                document.getElementById('address-bar').value = tab.url;
+            }
+            renderTabs();
+        }
+
+        function renderTabs() {
+            const list = document.getElementById('tabs-list');
+            list.innerHTML = '';
+            tabs.forEach(t => {
+                const el = document.createElement('div');
+                el.className = `tab ${t.id === activeTabId ? 'active' : ''}`;
+                el.onclick = () => switchTab(t.id);
+                
+                // Favicon handling
+                const iconContainer = document.createElement('div');
+                iconContainer.className = "flex items-center justify-center w-4 h-4";
+                
+                if (!t.url || t.url === '') {
+                    iconContainer.innerHTML = `<i data-lucide="globe" class="w-4 h-4 text-gray-500"></i>`;
+                } else {
+                    const img = document.createElement('img');
+                    img.className = 'tab-favicon';
+                    img.src = `https://www.google.com/s2/favicons?domain=${new URL(t.url).hostname}&sz=64`;
+                    img.onerror = () => {
+                        img.remove();
+                        iconContainer.innerHTML = `<i data-lucide="globe" class="w-4 h-4 text-gray-500"></i>`;
+                        refreshIcons();
+                    };
+                    iconContainer.appendChild(img);
+                }
+
+                const title = document.createElement('span');
+                title.className = 'truncate';
+                title.textContent = t.title;
+
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'ml-auto p-1 rounded-md hover:bg-white/10 flex items-center justify-center transition-colors';
+                closeBtn.innerHTML = `<i data-lucide="x" class="w-3 h-3 opacity-50 hover:opacity-100"></i>`;
+                closeBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    closeTab(t.id);
+                };
+
+                el.appendChild(iconContainer);
+                el.appendChild(title);
+                el.appendChild(closeBtn);
+                
+                list.appendChild(el);
+            });
+            refreshIcons();
+        }
+
+        function closeTab(id) {
+            const idx = tabs.findIndex(t => t.id === id);
+            if (idx === -1) return;
+
+            const frame = document.getElementById('frame-' + id);
+            if (frame) frame.remove();
+            
+            tabs.splice(idx, 1);
+
+            if (tabs.length === 0) {
+                createNewTab();
+            } else if (id === activeTabId) {
+                switchTab(tabs[Math.max(0, idx - 1)].id);
+            } else {
+                renderTabs();
+            }
+        }
+
+        async function processUrl(input) {
+            if (!input) return;
+            let query = input.trim();
+            let targetUrl = (query.includes('.') && !query.includes(' ')) ? (query.startsWith('http') ? query : 'https://' + query) : "https://www.bing.com/search?q=" + encodeURIComponent(query);
+            
+            const frame = document.getElementById('frame-' + activeTabId);
+            const prog = document.getElementById('progress');
+            const statusLabel = document.getElementById('status-light');
+            const tab = tabs.find(t => t.id === activeTabId);
+
+            document.getElementById('home-view').classList.add('hidden');
+            statusLabel.className = "w-2 h-2 rounded-full bg-indigo-500 animate-pulse";
+            prog.style.width = '20%';
+
+            tab.url = targetUrl;
+            try {
+                tab.title = new URL(targetUrl).hostname.replace('www.', '');
+            } catch(e) {
+                tab.title = targetUrl.split('/')[0];
+            }
+            renderTabs();
+
+            let mode = "Direct";
+            let useProxy = false;
+            const forcedBlocks = ['reddit.com', 'google.com', 'youtube.com', 'facebook.com', 'github.com', 'discord.com', 'twitter.com', 'x.com', 'instagram.com'];
+            if (forcedBlocks.some(b => targetUrl.includes(b))) useProxy = true;
+
+            if (!useProxy) {
+                try {
+                    await fetch(targetUrl, { method: 'HEAD', mode: 'no-cors' });
+                } catch (e) {
+                    useProxy = true;
+                }
+            }
+
+            try {
+                if (!useProxy) {
+                    frame.src = targetUrl;
+                    mode = "Direct";
+                } else {
+                    showToast("Bypassing CSP...");
+                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+                    const res = await fetch(proxyUrl);
+                    const data = await res.json();
+                    const doc = frame.contentWindow.document;
+                    doc.open();
+                    const baseTag = `<base href="${targetUrl}">`;
+                    let content = data.contents;
+                    content = content.replace('<head>', '<head>' + baseTag);
+                    doc.write(content);
+                    doc.close();
+                    mode = "Stealth Proxy";
+                }
+            } catch (err) {
+                frame.src = `https://api.codetabs.com/v1/proxy/?quest=${targetUrl}`;
+                mode = "Emergency";
+            }
+
+            prog.style.width = '100%';
+            showToast(`Connected: ${mode}`);
+            setTimeout(() => {
+                statusLabel.className = "w-2 h-2 rounded-full bg-emerald-500";
+                prog.style.width = '0%';
+            }, 800);
+        }
+
+        function goHome() {
+            const tab = tabs.find(t => t.id === activeTabId);
+            tab.url = ''; tab.title = 'New Tab';
+            const frame = document.getElementById('frame-' + activeTabId);
+            if (frame) frame.src = 'about:blank';
+            switchTab(activeTabId);
+        }
+
+        function reloadPage() {
+            const currentTab = tabs.find(t => t.id === activeTabId);
+            if (currentTab && currentTab.url) processUrl(currentTab.url);
+        }
+
+        function goBack() {
+            const frame = document.getElementById('frame-' + activeTabId);
+            try { frame.contentWindow.history.back(); } catch(e) {}
+        }
+
+        document.getElementById('address-bar').addEventListener('keypress', e => e.key === 'Enter' && processUrl(e.target.value));
+        document.getElementById('home-input').addEventListener('keypress', e => e.key === 'Enter' && processUrl(e.target.value));
+    </script>
+</body>
+</html>
