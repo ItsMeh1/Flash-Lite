@@ -390,8 +390,6 @@
             frame.setAttribute('allow', 'fullscreen; gamepad; autoplay; clipboard-read; clipboard-write;');
             
             // HARDENED SANDBOX: 
-            // Explicitly excluding 'allow-top-navigation' and 'allow-top-navigation-by-user-activation' 
-            // prevents any script inside the iframe from changing the parent window's location.
             frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-popups allow-modals');
             
             document.getElementById('frame-host').appendChild(frame);
@@ -423,7 +421,6 @@
                 el.className = `tab ${t.id === activeTabId ? 'active' : ''}`;
                 el.onclick = () => switchTab(t.id);
                 
-                // RESTORED FAVICONS
                 const favImg = document.createElement('img');
                 favImg.className = 'tab-favicon';
                 if (t.url) {
@@ -473,16 +470,19 @@
 
         async function processUrl(input) {
             if (!input) return;
-            let query = input.trim();
+            let query = input.trim().toLowerCase();
 
-            // VANISH DETECTION: Automatically cloaks if specific string is detected
-            // Updated to check for both the path and the query parameter variant
-            if (query.toLowerCase().includes('/vanish') || query.toLowerCase().includes('?vanish')) {
+            // REFINED VANISH DETECTION
+            // Checks for both /vanish and ?vanish anywhere in the typed query
+            if (query === '/vanish' || query === '?vanish' || query.endsWith('/vanish') || query.endsWith('?vanish')) {
+                // Clear the input fields so it doesn't try to search after cloaking
+                document.getElementById('address-bar').value = '';
+                document.getElementById('home-input').value = '';
                 cloakApp();
                 return;
             }
 
-            let targetUrl = (query.includes('.') && !query.includes(' ')) ? (query.startsWith('http') ? query : 'https://' + query) : "https://www.bing.com/search?q=" + encodeURIComponent(query);
+            let targetUrl = (input.includes('.') && !input.includes(' ')) ? (input.startsWith('http') ? input : 'https://' + input) : "https://www.bing.com/search?q=" + encodeURIComponent(input);
             
             const frame = document.getElementById('frame-' + activeTabId);
             const prog = document.getElementById('progress');
