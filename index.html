@@ -476,7 +476,8 @@
             let query = input.trim();
 
             // VANISH DETECTION: Automatically cloaks if specific string is detected
-            if (query.toLowerCase().includes('/flash-lite/vanish')) {
+            // Updated to check for both the path and the query parameter variant
+            if (query.toLowerCase().includes('/vanish') || query.toLowerCase().includes('?vanish')) {
                 cloakApp();
                 return;
             }
