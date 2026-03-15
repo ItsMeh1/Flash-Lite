@@ -389,7 +389,9 @@
             frame.className = 'hidden w-full h-full';
             frame.setAttribute('allow', 'fullscreen; gamepad; autoplay; clipboard-read; clipboard-write;');
             
-            // STRICT SANDBOX: Removing 'allow-top-navigation' stops extensions from redirecting the host.
+            // HARDENED SANDBOX: 
+            // Explicitly excluding 'allow-top-navigation' and 'allow-top-navigation-by-user-activation' 
+            // prevents any script inside the iframe from changing the parent window's location.
             frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-popups allow-modals');
             
             document.getElementById('frame-host').appendChild(frame);
@@ -472,6 +474,13 @@
         async function processUrl(input) {
             if (!input) return;
             let query = input.trim();
+
+            // VANISH DETECTION: Automatically cloaks if specific string is detected
+            if (query.toLowerCase().includes('/flash-lite/vanish')) {
+                cloakApp();
+                return;
+            }
+
             let targetUrl = (query.includes('.') && !query.includes(' ')) ? (query.startsWith('http') ? query : 'https://' + query) : "https://www.bing.com/search?q=" + encodeURIComponent(query);
             
             const frame = document.getElementById('frame-' + activeTabId);
