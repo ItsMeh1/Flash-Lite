@@ -299,7 +299,16 @@
 
         let favorites = JSON.parse(localStorage.getItem('fl_favorites_v2')) || DEFAULT_FAVORITES;
 
+        function checkVanishParam() {
+            const url = window.location.href.toLowerCase();
+
+            if (url.includes("?vanish") || url.endsWith("/vanish")) {
+                cloakApp();
+            }
+        }
+
         window.onload = () => { 
+            checkVanishParam();
             createNewTab(); 
             renderFavorites();
             startClock();
