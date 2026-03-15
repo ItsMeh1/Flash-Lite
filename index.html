@@ -299,13 +299,13 @@
 
         let favorites = JSON.parse(localStorage.getItem('fl_favorites_v2')) || DEFAULT_FAVORITES;
 
-        function checkVanishParam() {
-            const url = window.location.href.toLowerCase();
+function checkVanishParam() {
+    const params = new URLSearchParams(window.location.search);
 
-            if (url.includes("?vanish") || url.endsWith("/vanish")) {
-                cloakApp();
-            }
-        }
+    if (params.has("vanish")) {
+        cloakApp();
+    }
+}
 
         window.onload = () => { 
             checkVanishParam();
@@ -329,17 +329,31 @@
             update();
         }
 
-        function cloakApp() {
-            const win = window.open('about:blank', '_blank');
-            if (!win) { showToast("Pop-up blocked!"); return; }
-            win.document.write(`
-                <html><body style="margin:0;padding:0;overflow:hidden;background:#000;">
-                <iframe src="${window.location.href}" style="width:100vw;height:100vh;border:none;"></iframe>
-                </body></html>
-            `);
-            win.document.close();
-            window.location.replace('https://google.com');
-        }
+function cloakApp() {
+    const cleanURL = window.location.origin + window.location.pathname;
+
+    const win = window.open('about:blank', '_blank');
+    if (!win) {
+        showToast("Pop-up blocked!");
+        return;
+    }
+
+    win.document.write(`
+        <html>
+        <head>
+            <title>Google Classroom</title>
+            <link rel="icon" href="https://ssl.gstatic.com/classroom/favicon.png">
+        </head>
+        <body style="margin:0;overflow:hidden;background:#000;">
+            <iframe src="${cleanURL}" style="width:100vw;height:100vh;border:none;"></iframe>
+        </body>
+        </html>
+    `);
+
+    win.document.close();
+
+    window.location.replace("https://google.com");
+}
 
         function toggleFavModal() { document.getElementById('fav-modal').classList.toggle('open'); }
 
