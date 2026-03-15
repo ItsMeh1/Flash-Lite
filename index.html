@@ -233,7 +233,7 @@
 
         <div class="flex gap-1 items-center border-l border-white/10 pl-3">
             <button id="hardened-btn" class="nav-btn text-emerald-400" title="Hardened Sandbox Active"><i data-lucide="shield-check" class="w-5 h-5"></i></button>
-            <button onclick="cloakApp()" class="nav-btn" title="AB Cloak (Hide in about:blank)"><i data-lucide="eye-off" class="w-5 h-5"></i></button>
+            <button onclick="cloakApp()" class="nav-btn" title="AB Cloak (Hide Site)"><i data-lucide="eye-off" class="w-5 h-5"></i></button>
             <button onclick="goHome()" class="nav-btn" title="Go Home"><i data-lucide="home" class="w-5 h-5"></i></button>
         </div>
     </nav>
@@ -268,16 +268,16 @@
                     <div class="bg-white/5 border border-white/10 p-5 rounded-3xl">
                         <div class="flex items-center gap-3 mb-3">
                             <i data-lucide="lock" class="w-4 h-4 text-emerald-400"></i>
-                            <h4 class="text-xs font-bold text-gray-300">Strict Lock Enabled</h4>
+                            <h4 class="text-xs font-bold text-gray-300">Hardened Iframe Active</h4>
                         </div>
-                        <p class="text-[11px] text-gray-500 leading-relaxed">Top-level navigation is disabled. If an extension tries to redirect the page to <code>yourblocker.com</code>, the Flash Lite will block it automatically.</p>
+                        <p class="text-[11px] text-gray-500 leading-relaxed">Top-level navigation is disabled. If an extension tries to redirect the page, the browser will block it automatically.</p>
                     </div>
                     <div class="bg-white/5 border border-white/10 p-5 rounded-3xl">
                         <div class="flex items-center gap-3 mb-3">
                             <i data-lucide="eye-off" class="w-4 h-4 text-indigo-400"></i>
                             <h4 class="text-xs font-bold text-gray-300">About:Blank Cloaking</h4>
                         </div>
-                        <p class="text-[11px] text-gray-500 leading-relaxed">Use the eye-off icon to open Flash Lite in a raw data-uri or blank tab. Extensions cannot easily scan tabs without a standard URL.</p>
+                        <p class="text-[11px] text-gray-500 leading-relaxed">Use the eye-off icon to open Flash Lite in a blank tab. This makes the session invisible to most browser history trackers.</p>
                     </div>
                 </div>
             </div>
@@ -324,7 +324,7 @@
             const win = window.open('about:blank', '_blank');
             if (!win) { showToast("Pop-up blocked!"); return; }
             win.document.write(`
-                <html><body style="margin:0;padding:0;overflow:hidden;">
+                <html><body style="margin:0;padding:0;overflow:hidden;background:#000;">
                 <iframe src="${window.location.href}" style="width:100vw;height:100vh;border:none;"></iframe>
                 </body></html>
             `);
@@ -389,8 +389,7 @@
             frame.className = 'hidden w-full h-full';
             frame.setAttribute('allow', 'fullscreen; gamepad; autoplay; clipboard-read; clipboard-write;');
             
-            // STRICT SANDBOX: Removing 'allow-top-navigation' stops the extension from redirecting you.
-            // Removing 'allow-top-navigation-to-custom-protocols' stops it from triggering app opens.
+            // STRICT SANDBOX: Removing 'allow-top-navigation' stops extensions from redirecting the host.
             frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-popups allow-modals');
             
             document.getElementById('frame-host').appendChild(frame);
@@ -421,13 +420,38 @@
                 const el = document.createElement('div');
                 el.className = `tab ${t.id === activeTabId ? 'active' : ''}`;
                 el.onclick = () => switchTab(t.id);
+                
+                // RESTORED FAVICONS
+                const favImg = document.createElement('img');
+                favImg.className = 'tab-favicon';
+                if (t.url) {
+                    favImg.src = `https://www.google.com/s2/favicons?domain=${t.url}&sz=32`;
+                    favImg.onerror = () => { 
+                        favImg.style.display = 'none';
+                        const iconPlaceholder = document.createElement('i');
+                        iconPlaceholder.setAttribute('data-lucide', 'globe');
+                        iconPlaceholder.className = 'w-4 h-4 text-gray-500';
+                        el.prepend(iconPlaceholder);
+                        refreshIcons();
+                    };
+                } else {
+                    const iconPlaceholder = document.createElement('i');
+                    iconPlaceholder.setAttribute('data-lucide', 'plus');
+                    iconPlaceholder.className = 'w-4 h-4 text-gray-500';
+                    el.appendChild(iconPlaceholder);
+                }
+                
+                if (t.url) el.appendChild(favImg);
+
                 const title = document.createElement('span');
                 title.className = 'truncate';
                 title.textContent = t.title;
+                
                 const closeBtn = document.createElement('button');
                 closeBtn.className = 'ml-auto p-1 rounded-md hover:bg-white/10 flex items-center justify-center transition-colors';
                 closeBtn.innerHTML = `<i data-lucide="x" class="w-3 h-3"></i>`;
                 closeBtn.onclick = (e) => { e.stopPropagation(); closeTab(t.id); };
+                
                 el.appendChild(title);
                 el.appendChild(closeBtn);
                 list.appendChild(el);
@@ -461,14 +485,12 @@
             try { tab.title = new URL(targetUrl).hostname.replace('www.', ''); } catch(e) { tab.title = targetUrl; }
             renderTabs();
 
-            // Try direct load first
             frame.src = targetUrl;
             
-            // Only if it's a known extreme-block site, we use the fallback proxy
             const heavySites = ['discord.com', 'instagram.com'];
             if (heavySites.some(s => targetUrl.includes(s))) {
                 frame.src = `https://api.codetabs.com/v1/proxy/?quest=${targetUrl}`;
-                showToast("Proxying heavy assets...");
+                showToast("Bypassing CSP...");
             }
 
             prog.style.width = '100%';
