@@ -116,7 +116,7 @@
             width: 100%; 
             height: 100%; 
             border: none; 
-            transition: opacity 0.3s ease; /* Added smooth fade-in */
+            transition: opacity 0.3s ease;
         }
         
         #toast {
@@ -130,6 +130,7 @@
             border-radius: 50px;
             color: #c7d2fe;
             font-size: 13px;
+            font-weight: 600;
             transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
             z-index: 1000;
         }
@@ -230,7 +231,11 @@
             <div id="status-light" class="w-2 h-2 rounded-full bg-gray-700" title="Connection Status"></div>
         </div>
 
-        <button onclick="goHome()" class="nav-btn" title="Go Home"><i data-lucide="home" class="w-5 h-5"></i></button>
+        <div class="flex gap-1 items-center border-l border-white/10 pl-3">
+            <button id="hardened-btn" class="nav-btn text-emerald-400" title="Hardened Sandbox Active"><i data-lucide="shield-check" class="w-5 h-5"></i></button>
+            <button onclick="cloakApp()" class="nav-btn" title="AB Cloak (Hide in about:blank)"><i data-lucide="eye-off" class="w-5 h-5"></i></button>
+            <button onclick="goHome()" class="nav-btn" title="Go Home"><i data-lucide="home" class="w-5 h-5"></i></button>
+        </div>
     </nav>
 
     <main class="flex-1 relative">
@@ -257,23 +262,22 @@
                     </div>
                 </div>
 
-                <div id="fav-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
-                    </div>
+                <div id="fav-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4"></div>
 
                 <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-white/5 border border-white/10 p-5 rounded-3xl">
                         <div class="flex items-center gap-3 mb-3">
-                            <i data-lucide="zap" class="w-4 h-4 text-indigo-400"></i>
-                            <h4 class="text-xs font-bold text-gray-300">Smart Engine v3</h4>
+                            <i data-lucide="lock" class="w-4 h-4 text-emerald-400"></i>
+                            <h4 class="text-xs font-bold text-gray-300">Strict Lock Enabled</h4>
                         </div>
-                        <p class="text-[11px] text-gray-500 leading-relaxed">Detects blockers in an instant, and then changes its proxy.</p>
+                        <p class="text-[11px] text-gray-500 leading-relaxed">Top-level navigation is disabled. If an extension tries to redirect the page to <code>yourblocker.com</code>, the Flash Lite will block it automatically.</p>
                     </div>
                     <div class="bg-white/5 border border-white/10 p-5 rounded-3xl">
                         <div class="flex items-center gap-3 mb-3">
-                            <i data-lucide="shield" class="w-4 h-4 text-emerald-400"></i>
-                            <h4 class="text-xs font-bold text-gray-300">Security. Privacy. Speed. That's Flash.</h4>
+                            <i data-lucide="eye-off" class="w-4 h-4 text-indigo-400"></i>
+                            <h4 class="text-xs font-bold text-gray-300">About:Blank Cloaking</h4>
                         </div>
-                        <p class="text-[11px] text-gray-500 leading-relaxed">Flash keeps all of your favorites, history, and browser data private. All information stays on your browser only, where only you can access it.</p>
+                        <p class="text-[11px] text-gray-500 leading-relaxed">Use the eye-off icon to open Flash Lite in a raw data-uri or blank tab. Extensions cannot easily scan tabs without a standard URL.</p>
                     </div>
                 </div>
             </div>
@@ -286,11 +290,10 @@
         let activeTabId = null;
         
         const DEFAULT_FAVORITES = [
+            { title: 'Veck.io', url: 'https://veck.io', color: 'bg-purple-600/20', icon: 'crosshair' },
             { title: 'Eaglercraft', url: 'https://eaglercraft.ir', color: 'bg-emerald-600/20', icon: 'pickaxe' },
             { title: '2v2.io', url: 'https://2v2.io', color: 'bg-amber-600/20', icon: 'gamepad-2' },
-            { title: 'Reddit', url: 'https://old.reddit.com', color: 'bg-orange-600/20', icon: 'message-square' },
             { title: 'DuckDuckGo', url: 'https://duckduckgo.com', color: 'bg-blue-600/20', icon: 'shield-check' },
-            { title: 'Wiki', url: 'https://wikipedia.org', color: 'bg-white/20', icon: 'book-open' },
             { title: 'GitHub', url: 'https://github.com', color: 'bg-gray-600/20', icon: 'github' }
         ];
 
@@ -317,9 +320,19 @@
             update();
         }
 
-        function toggleFavModal() {
-            document.getElementById('fav-modal').classList.toggle('open');
+        function cloakApp() {
+            const win = window.open('about:blank', '_blank');
+            if (!win) { showToast("Pop-up blocked!"); return; }
+            win.document.write(`
+                <html><body style="margin:0;padding:0;overflow:hidden;">
+                <iframe src="${window.location.href}" style="width:100vw;height:100vh;border:none;"></iframe>
+                </body></html>
+            `);
+            win.document.close();
+            window.location.replace('https://google.com');
         }
+
+        function toggleFavModal() { document.getElementById('fav-modal').classList.toggle('open'); }
 
         function saveNewFavorite() {
             const title = document.getElementById('fav-title').value.trim();
@@ -374,14 +387,11 @@
             const frame = document.createElement('iframe');
             frame.id = 'frame-' + id;
             frame.className = 'hidden w-full h-full';
-            frame.setAttribute('allow', 'fullscreen; gamepad; autoplay; clipboard-read; clipboard-write; microphone; camera;');
+            frame.setAttribute('allow', 'fullscreen; gamepad; autoplay; clipboard-read; clipboard-write;');
             
-            // ---> UPGRADED IFRAME TAGS HERE <---
-            // Put your requested tags first, kept the others so sites don't break
+            // STRICT SANDBOX: Removing 'allow-top-navigation' stops the extension from redirecting you.
+            // Removing 'allow-top-navigation-to-custom-protocols' stops it from triggering app opens.
             frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-popups allow-modals');
-            // Added security and accessibility best practices
-            frame.setAttribute('referrerpolicy', 'no-referrer');
-            frame.setAttribute('title', 'Browser Tab Content');
             
             document.getElementById('frame-host').appendChild(frame);
             tabs.push({ id, url: '', title: 'New Tab' });
@@ -391,19 +401,9 @@
         function switchTab(id) {
             activeTabId = id;
             const tab = tabs.find(t => t.id === id);
-            
-            // Smoothly hide all frames, show the active one
-            document.querySelectorAll('iframe').forEach(f => {
-                f.classList.add('hidden');
-                f.style.opacity = '0';
-            });
+            document.querySelectorAll('iframe').forEach(f => { f.classList.add('hidden'); f.style.opacity = '0'; });
             const frame = document.getElementById('frame-' + id);
-            if (frame) {
-                frame.classList.remove('hidden');
-                // Tiny timeout ensures the display changes before opacity transitions
-                setTimeout(() => frame.style.opacity = '1', 10); 
-            }
-            
+            if (frame) { frame.classList.remove('hidden'); setTimeout(() => frame.style.opacity = '1', 10); }
             if (!tab.url) {
                 document.getElementById('home-view').classList.remove('hidden');
                 document.getElementById('address-bar').value = '';
@@ -421,46 +421,15 @@
                 const el = document.createElement('div');
                 el.className = `tab ${t.id === activeTabId ? 'active' : ''}`;
                 el.onclick = () => switchTab(t.id);
-                
-                // Favicon handling
-                const iconContainer = document.createElement('div');
-                iconContainer.className = "flex items-center justify-center w-4 h-4";
-                
-                if (!t.url || t.url === '') {
-                    iconContainer.innerHTML = `<i data-lucide="globe" class="w-4 h-4 text-gray-500"></i>`;
-                } else {
-                    const img = document.createElement('img');
-                    img.className = 'tab-favicon';
-                    // Better error catching for invalid URLs
-                    try {
-                        img.src = `https://www.google.com/s2/favicons?domain=${new URL(t.url).hostname}&sz=64`;
-                    } catch(e) {
-                        img.src = `https://www.google.com/s2/favicons?domain=${t.url}&sz=64`;
-                    }
-                    img.onerror = () => {
-                        img.remove();
-                        iconContainer.innerHTML = `<i data-lucide="globe" class="w-4 h-4 text-gray-500"></i>`;
-                        refreshIcons();
-                    };
-                    iconContainer.appendChild(img);
-                }
-
                 const title = document.createElement('span');
                 title.className = 'truncate';
                 title.textContent = t.title;
-
                 const closeBtn = document.createElement('button');
                 closeBtn.className = 'ml-auto p-1 rounded-md hover:bg-white/10 flex items-center justify-center transition-colors';
-                closeBtn.innerHTML = `<i data-lucide="x" class="w-3 h-3 opacity-50 hover:opacity-100"></i>`;
-                closeBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    closeTab(t.id);
-                };
-
-                el.appendChild(iconContainer);
+                closeBtn.innerHTML = `<i data-lucide="x" class="w-3 h-3"></i>`;
+                closeBtn.onclick = (e) => { e.stopPropagation(); closeTab(t.id); };
                 el.appendChild(title);
                 el.appendChild(closeBtn);
-                
                 list.appendChild(el);
             });
             refreshIcons();
@@ -469,19 +438,11 @@
         function closeTab(id) {
             const idx = tabs.findIndex(t => t.id === id);
             if (idx === -1) return;
-
-            const frame = document.getElementById('frame-' + id);
-            if (frame) frame.remove();
-            
+            document.getElementById('frame-' + id).remove();
             tabs.splice(idx, 1);
-
-            if (tabs.length === 0) {
-                createNewTab();
-            } else if (id === activeTabId) {
-                switchTab(tabs[Math.max(0, idx - 1)].id);
-            } else {
-                renderTabs();
-            }
+            if (tabs.length === 0) createNewTab();
+            else if (id === activeTabId) switchTab(tabs[Math.max(0, idx - 1)].id);
+            else renderTabs();
         }
 
         async function processUrl(input) {
@@ -491,70 +452,33 @@
             
             const frame = document.getElementById('frame-' + activeTabId);
             const prog = document.getElementById('progress');
-            const statusLabel = document.getElementById('status-light');
             const tab = tabs.find(t => t.id === activeTabId);
 
             document.getElementById('home-view').classList.add('hidden');
-            statusLabel.className = "w-2 h-2 rounded-full bg-indigo-500 animate-pulse";
-            prog.style.width = '20%';
+            prog.style.width = '30%';
 
             tab.url = targetUrl;
-            try {
-                tab.title = new URL(targetUrl).hostname.replace('www.', '');
-            } catch(e) {
-                tab.title = targetUrl.split('/')[0];
-            }
+            try { tab.title = new URL(targetUrl).hostname.replace('www.', ''); } catch(e) { tab.title = targetUrl; }
             renderTabs();
 
-            let mode = "Direct";
-            let useProxy = false;
-            const forcedBlocks = ['reddit.com', 'google.com', 'youtube.com', 'facebook.com', 'github.com', 'discord.com', 'twitter.com', 'x.com', 'instagram.com'];
-            if (forcedBlocks.some(b => targetUrl.includes(b))) useProxy = true;
-
-            if (!useProxy) {
-                try {
-                    await fetch(targetUrl, { method: 'HEAD', mode: 'no-cors' });
-                } catch (e) {
-                    useProxy = true;
-                }
-            }
-
-            try {
-                if (!useProxy) {
-                    frame.src = targetUrl;
-                    mode = "Direct";
-                } else {
-                    showToast("Bypassing CSP...");
-                    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-                    const res = await fetch(proxyUrl);
-                    const data = await res.json();
-                    const doc = frame.contentWindow.document;
-                    doc.open();
-                    const baseTag = `<base href="${targetUrl}">`;
-                    let content = data.contents;
-                    content = content.replace('<head>', '<head>' + baseTag);
-                    doc.write(content);
-                    doc.close();
-                    mode = "Stealth Proxy";
-                }
-            } catch (err) {
+            // Try direct load first
+            frame.src = targetUrl;
+            
+            // Only if it's a known extreme-block site, we use the fallback proxy
+            const heavySites = ['discord.com', 'instagram.com'];
+            if (heavySites.some(s => targetUrl.includes(s))) {
                 frame.src = `https://api.codetabs.com/v1/proxy/?quest=${targetUrl}`;
-                mode = "Emergency";
+                showToast("Proxying heavy assets...");
             }
 
             prog.style.width = '100%';
-            showToast(`Connected: ${mode}`);
-            setTimeout(() => {
-                statusLabel.className = "w-2 h-2 rounded-full bg-emerald-500";
-                prog.style.width = '0%';
-            }, 800);
+            setTimeout(() => { prog.style.width = '0%'; }, 800);
         }
 
         function goHome() {
             const tab = tabs.find(t => t.id === activeTabId);
             tab.url = ''; tab.title = 'New Tab';
-            const frame = document.getElementById('frame-' + activeTabId);
-            if (frame) frame.src = 'about:blank';
+            document.getElementById('frame-' + activeTabId).src = 'about:blank';
             switchTab(activeTabId);
         }
 
@@ -564,8 +488,7 @@
         }
 
         function goBack() {
-            const frame = document.getElementById('frame-' + activeTabId);
-            try { frame.contentWindow.history.back(); } catch(e) {}
+            try { document.getElementById('frame-' + activeTabId).contentWindow.history.back(); } catch(e) {}
         }
 
         document.getElementById('address-bar').addEventListener('keypress', e => e.key === 'Enter' && processUrl(e.target.value));
