@@ -413,11 +413,30 @@ function cloakApp() {
             frame.setAttribute('allow', 'fullscreen; gamepad; autoplay; clipboard-read; clipboard-write;');
             
             // HARDENED SANDBOX: 
-            frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-popups allow-modals');
-            
+            frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-pointer-lock allow-forms');            
             document.getElementById('frame-host').appendChild(frame);
             tabs.push({ id, url: '', title: 'New Tab' });
             switchTab(id);
+            // Track last known safe URL
+let lastSafeURL = '';
+
+frame.addEventListener('load', () => {
+    try {
+        const currentURL = frame.contentWindow.location.href;
+
+        // If URL changed unexpectedly, revert it
+        if (lastSafeURL && currentURL !== lastSafeURL) {
+            console.warn("Blocked unexpected navigation:", currentURL);
+            frame.src = lastSafeURL;
+            showToast("Blocked redirect attempt");
+        } else {
+            lastSafeURL = currentURL;
+        }
+    } catch (e) {
+        // Cross-origin → still update safe URL
+        lastSafeURL = frame.src;
+    }
+});
         }
 
         function switchTab(id) {
@@ -519,6 +538,8 @@ function cloakApp() {
             renderTabs();
 
             frame.src = targetUrl;
+            frame.dataset.locked = "true";
+            frame.dataset.safeUrl = targetUrl;
             
             const heavySites = ['discord.com', 'instagram.com'];
             if (heavySites.some(s => targetUrl.includes(s))) {
@@ -548,6 +569,11 @@ function cloakApp() {
 
         document.getElementById('address-bar').addEventListener('keypress', e => e.key === 'Enter' && processUrl(e.target.value));
         document.getElementById('home-input').addEventListener('keypress', e => e.key === 'Enter' && processUrl(e.target.value));
+        // Stronger unload protection (top-level, not iframe)
+window.addEventListener('beforeunload', (e) => {
+    e.preventDefault();
+    e.returnValue = '';
+});
     </script>
 </body>
 </html>
