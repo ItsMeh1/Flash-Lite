@@ -188,10 +188,57 @@
             transform: translate(-50%, -50%) scale(1);
         }
 
+        #startup-modal {
+            transition: opacity 0.3s ease, backdrop-filter 0.3s ease;
+        }
+
         .scroll-hide::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body>
+    <!-- STARTUP NOTIFICATION MODAL -->
+    <div id="startup-modal" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div class="bg-[#111114] border border-white/10 rounded-2xl p-6 w-[400px] max-w-[90vw] shadow-2xl flex flex-col gap-4">
+            <h2 class="text-xl font-bold text-white text-center">Setup Flash Lite</h2>
+            <p class="text-sm text-gray-400 text-center mb-2">Select your browsing configuration before continuing:</p>
+            
+            <div class="flex flex-col gap-2">
+                <button onclick="setMode('A')" class="w-full bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/30 p-4 rounded-xl font-medium text-indigo-300 transition-colors text-left flex items-center justify-between group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500/40 group-hover:text-white transition-all">A</div>
+                        <span class="font-bold">Mode G</span>
+                    </div>
+                    <span class="text-xs opacity-60">Automatically add filter to all links.</span>
+                </button>
+                
+                <button onclick="setMode('B')" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl font-medium text-gray-300 transition-colors text-left flex items-center justify-between group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 group-hover:bg-white/20 group-hover:text-white transition-all">B</div>
+                        <span class="font-bold">Mode B</span>
+                    </div>
+                    <span class="text-xs opacity-60">Pending configs</span>
+                </button>
+                
+                <button onclick="setMode('C')" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl font-medium text-gray-300 transition-colors text-left flex items-center justify-between group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 group-hover:bg-white/20 group-hover:text-white transition-all">C</div>
+                        <span class="font-bold">Mode C</span>
+                    </div>
+                    <span class="text-xs opacity-60">Pending configs</span>
+                </button>
+                
+                <button onclick="setMode('D')" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl font-medium text-gray-300 transition-colors text-left flex items-center justify-between group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 group-hover:bg-white/20 group-hover:text-white transition-all">D</div>
+                        <span class="font-bold">Mode Standard</span>
+                    </div>
+                    <span class="text-xs opacity-60">Standard URL, do nothing.</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- END STARTUP MODAL -->
+
     <div id="progress" class="loading-bar" style="width: 0%"></div>
     <div id="toast">Ready</div>
 
@@ -288,6 +335,7 @@
     <script>
         let tabs = [];
         let activeTabId = null;
+        let selectedMode = 'D'; // Default to D if nothing picked, though modal prevents bypassing
         
         const DEFAULT_FAVORITES = [
             { title: 'Veck.io', url: 'https://veck.io', color: 'bg-purple-600/20', icon: 'crosshair' },
@@ -299,13 +347,26 @@
 
         let favorites = JSON.parse(localStorage.getItem('fl_favorites_v2')) || DEFAULT_FAVORITES;
 
-function checkVanishParam() {
-    const params = new URLSearchParams(window.location.search);
+        // Startup Mode Logic
+        function setMode(mode) {
+            selectedMode = mode;
+            const modal = document.getElementById('startup-modal');
+            modal.style.opacity = '0';
+            modal.style.backdropFilter = 'blur(0px)';
+            
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+            
+            showToast(`Mode ${mode} activated.`);
+        }
 
-    if (params.has("vanish")) {
-        cloakApp();
-    }
-}
+        function checkVanishParam() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.has("vanish")) {
+                cloakApp();
+            }
+        }
 
         window.onload = () => { 
             checkVanishParam();
@@ -329,31 +390,30 @@ function checkVanishParam() {
             update();
         }
 
-function cloakApp() {
-    const cleanURL = window.location.origin + window.location.pathname;
+        function cloakApp() {
+            const cleanURL = window.location.origin + window.location.pathname;
 
-    const win = window.open('about:blank', '_blank');
-    if (!win) {
-        showToast("Pop-up blocked!");
-        return;
-    }
+            const win = window.open('about:blank', '_blank');
+            if (!win) {
+                showToast("Pop-up blocked!");
+                return;
+            }
 
-    win.document.write(`
-        <html>
-        <head>
-            <title>Google Classroom</title>
-            <link rel="icon" href="https://ssl.gstatic.com/classroom/favicon.png">
-        </head>
-        <body style="margin:0;overflow:hidden;background:#000;">
-            <iframe src="${cleanURL}" style="width:100vw;height:100vh;border:none;"></iframe>
-        </body>
-        </html>
-    `);
+            win.document.write(`
+                <html>
+                <head>
+                    <title>Google Classroom</title>
+                    <link rel="icon" href="https://ssl.gstatic.com/classroom/favicon.png">
+                </head>
+                <body style="margin:0;overflow:hidden;background:#000;">
+                    <iframe src="${cleanURL}" style="width:100vw;height:100vh;border:none;"></iframe>
+                </body>
+                </html>
+            `);
 
-    win.document.close();
-
-    window.location.replace("https://google.com");
-}
+            win.document.close();
+            window.location.replace("https://google.com");
+        }
 
         function toggleFavModal() { document.getElementById('fav-modal').classList.toggle('open'); }
 
@@ -417,26 +477,27 @@ function cloakApp() {
             document.getElementById('frame-host').appendChild(frame);
             tabs.push({ id, url: '', title: 'New Tab' });
             switchTab(id);
+            
             // Track last known safe URL
-let lastSafeURL = '';
+            let lastSafeURL = '';
 
-frame.addEventListener('load', () => {
-    try {
-        const currentURL = frame.contentWindow.location.href;
+            frame.addEventListener('load', () => {
+                try {
+                    const currentURL = frame.contentWindow.location.href;
 
-        // If URL changed unexpectedly, revert it
-        if (lastSafeURL && currentURL !== lastSafeURL) {
-            console.warn("Blocked unexpected navigation:", currentURL);
-            frame.src = lastSafeURL;
-            showToast("Blocked redirect attempt");
-        } else {
-            lastSafeURL = currentURL;
-        }
-    } catch (e) {
-        // Cross-origin → still update safe URL
-        lastSafeURL = frame.src;
-    }
-});
+                    // If URL changed unexpectedly, revert it
+                    if (lastSafeURL && currentURL !== lastSafeURL) {
+                        console.warn("Blocked unexpected navigation:", currentURL);
+                        frame.src = lastSafeURL;
+                        showToast("Blocked redirect attempt");
+                    } else {
+                        lastSafeURL = currentURL;
+                    }
+                } catch (e) {
+                    // Cross-origin → still update safe URL
+                    lastSafeURL = frame.src;
+                }
+            });
         }
 
         function switchTab(id) {
@@ -515,9 +576,7 @@ frame.addEventListener('load', () => {
             let query = input.trim().toLowerCase();
 
             // REFINED VANISH DETECTION
-            // Checks for both /vanish and ?vanish anywhere in the typed query
             if (query === '/vanish' || query === '?vanish' || query.endsWith('/vanish') || query.endsWith('?vanish')) {
-                // Clear the input fields so it doesn't try to search after cloaking
                 document.getElementById('address-bar').value = '';
                 document.getElementById('home-input').value = '';
                 cloakApp();
@@ -525,6 +584,17 @@ frame.addEventListener('load', () => {
             }
 
             let targetUrl = (input.includes('.') && !input.includes(' ')) ? (input.startsWith('http') ? input : 'https://' + input) : "https://www.bing.com/search?q=" + encodeURIComponent(input);
+            
+            // --- MODE SELECTION LOGIC APPLIED HERE ---
+            if (selectedMode === 'A') {
+                targetUrl += '/?.classroom.google.com';
+            } else if (selectedMode === 'B') {
+                // Future code for B
+            } else if (selectedMode === 'C') {
+                // Future code for C
+            } else if (selectedMode === 'D') {
+                // Do nothing
+            }
             
             const frame = document.getElementById('frame-' + activeTabId);
             const prog = document.getElementById('progress');
@@ -569,11 +639,12 @@ frame.addEventListener('load', () => {
 
         document.getElementById('address-bar').addEventListener('keypress', e => e.key === 'Enter' && processUrl(e.target.value));
         document.getElementById('home-input').addEventListener('keypress', e => e.key === 'Enter' && processUrl(e.target.value));
+        
         // Stronger unload protection (top-level, not iframe)
-window.addEventListener('beforeunload', (e) => {
-    e.preventDefault();
-    e.returnValue = '';
-});
+        window.addEventListener('beforeunload', (e) => {
+            e.preventDefault();
+            e.returnValue = '';
+        });
     </script>
 </body>
 </html>
