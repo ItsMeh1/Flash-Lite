@@ -234,6 +234,13 @@
                     </div>
                     <span class="text-xs opacity-60">Standard URL, do nothing.</span>
                 </button>
+                <button onclick="setMode('E')" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl font-medium text-gray-300 transition-colors text-left flex items-center justify-between group">
+    <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 group-hover:bg-white/20 group-hover:text-white transition-all">E</div>
+        <span class="font-bold">Flash Relay</span>
+    </div>
+    <span class="text-xs opacity-60">Powered by Scramjet</span>
+</button>
             </div>
         </div>
     </div>
@@ -473,13 +480,29 @@
             frame.setAttribute('allow', 'fullscreen; gamepad; autoplay; clipboard-read; clipboard-write;');
             
             // HARDENED SANDBOX: 
-            frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-pointer-lock allow-forms');            
+            frame.setAttribute(
+  'sandbox',
+  'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-popups allow-top-navigation-by-user-activation'
+);         
             document.getElementById('frame-host').appendChild(frame);
             tabs.push({ id, url: '', title: 'New Tab' });
             switchTab(id);
             
             // Track last known safe URL
             let lastSafeURL = '';
+            
+            frame.onerror = () => {
+    if (!frame.dataset.failedOnce) {
+        frame.dataset.failedOnce = "true";
+        showToast("Retrying via Flash Relay...");
+
+const encoded = encodeURIComponent(frame.dataset.originalUrl);
+frame.src = `https://secured.wiki/scramjet/${encoded}`;        
+        frame.src = `https://secured.wiki/scramjet/${encoded}`;
+    } else {
+        showToast("Load failed");
+    }
+};
 
             frame.addEventListener('load', () => {
                 try {
@@ -582,8 +605,17 @@
                 cloakApp();
                 return;
             }
+            frame.dataset.originalUrl = input.startsWith('http') ? input : 'https://' + input;
 
             let targetUrl = (input.includes('.') && !input.includes(' ')) ? (input.startsWith('http') ? input : 'https://' + input) : "https://www.bing.com/search?q=" + encodeURIComponent(input);
+
+            const HEAVY_SITES = ['youtube.com', 'discord.com', 'twitch.tv'];
+
+if (selectedMode !== 'E' && HEAVY_SITES.some(site => targetUrl.includes(site))) {
+    const encoded = encodeURIComponent(targetUrl);
+    targetUrl = `https://secured.wiki/scramjet/${encoded}`;
+    showToast("Auto: Flash Relay");
+}
             
             // --- MODE SELECTION LOGIC ---
 // --- MODE SELECTION LOGIC ---
@@ -602,7 +634,13 @@
                 showToast("Mode C: Direct Proxy Active");
             } else if (selectedMode === 'D') {
                 // Standard mode
-            }
+            } else if (selectedMode === 'E') {
+    // Flash Relay (secured.wiki backend)
+    const encoded = encodeURIComponent(targetUrl);
+    targetUrl = `https://secured.wiki/scramjet/${encoded}`;
+    showToast("Flash Relay Active");
+}
+            
             const frame = document.getElementById('frame-' + activeTabId);
             const prog = document.getElementById('progress');
             const tab = tabs.find(t => t.id === activeTabId);
@@ -618,11 +656,9 @@
             frame.dataset.locked = "true";
             frame.dataset.safeUrl = targetUrl;
             
-            const heavySites = ['discord.com', 'instagram.com'];
-            if (heavySites.some(s => targetUrl.includes(s))) {
-                frame.src = `https://api.codetabs.com/v1/proxy/?quest=${targetUrl}`;
-                showToast("Bypassing CSP...");
-            }
+            if (selectedMode !== 'E' && heavySites.some(s => targetUrl.includes(s))) {
+    frame.src = `https://api.codetabs.com/v1/proxy/?quest=${targetUrl}`;
+}
 
             prog.style.width = '100%';
             setTimeout(() => { prog.style.width = '0%'; }, 800);
