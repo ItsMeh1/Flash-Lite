@@ -343,13 +343,14 @@
         let tabs = [];
         let activeTabId = null;
         let selectedMode = 'D'; // Default to D if nothing picked, though modal prevents bypassing
+        // Scramjet URL KEYWORDS | scram, scramjet, sj, proxy, proxy links, that thingy
+        let SCRAMJET_BASE = "https://secured.wiki/scramjet/";
         
         const DEFAULT_FAVORITES = [
             { title: 'Veck.io', url: 'https://veck.io', color: 'bg-purple-600/20', icon: 'crosshair' },
             { title: 'Eaglercraft', url: 'https://eaglercraft.ir', color: 'bg-emerald-600/20', icon: 'pickaxe' },
             { title: '2v2.io', url: 'https://2v2.io', color: 'bg-amber-600/20', icon: 'gamepad-2' },
-            { title: 'DuckDuckGo', url: 'https://duckduckgo.com', color: 'bg-blue-600/20', icon: 'shield-check' },
-            { title: 'GitHub', url: 'https://github.com', color: 'bg-gray-600/20', icon: 'github' }
+            { title: 'Bing', url: 'https://bing.com', color: 'bg-blue-600/20', icon: 'shield-check' },
         ];
 
         let favorites = JSON.parse(localStorage.getItem('fl_favorites_v2')) || DEFAULT_FAVORITES;
@@ -497,8 +498,8 @@
         showToast("Retrying via Flash Relay...");
 
 const encoded = encodeURIComponent(frame.dataset.originalUrl);
-frame.src = `https://secured.wiki/scramjet/${encoded}`;        
-        frame.src = `https://secured.wiki/scramjet/${encoded}`;
+frame.src = `${SCRAMJET_BASE}${encoded}`;        
+        frame.src = `${SCRAMJET_BASE}${encoded}`;
     } else {
         showToast("Load failed");
     }
@@ -615,7 +616,7 @@ const HEAVY_SITES = ['youtube.com', 'discord.com', 'twitch.tv'];
 
 if (selectedMode !== 'E' && HEAVY_SITES.some(site => targetUrl.includes(site))) {
     const encoded = encodeURIComponent(targetUrl);
-    targetUrl = `https://secured.wiki/scramjet/${encoded}`;
+    targetUrl = `${SCRAMJET_BASE}${encoded}`;
     showToast("Auto: Flash Relay");
 }
             
@@ -639,7 +640,7 @@ if (selectedMode !== 'E' && HEAVY_SITES.some(site => targetUrl.includes(site))) 
             } else if (selectedMode === 'E') {
     // Flash Relay (secured.wiki backend)
     const encoded = encodeURIComponent(targetUrl);
-    targetUrl = `https://secured.wiki/scramjet/${encoded}`;
+    targetUrl = `${SCRAMJET_BASE}${encoded}`;
     showToast("Flash Relay Active");
 }
             
