@@ -587,16 +587,20 @@
             
             // --- MODE SELECTION LOGIC APPLIED HERE ---
             if (selectedMode === 'A') {
-                // Check if the URL is a Bing search; if it is, skip the filter
+                // Anti-GG: Appends Google Classroom string (except for Bing searches)
                 if (!targetUrl.includes('bing.com/search')) {
                     targetUrl += '/?.classroom.google.com';
                 }
             } else if (selectedMode === 'B') {
-                // Future code for B
+                // Anti-S (Translate Cloak): Routes the link through Google Translate.
+                // This is a classic trick to bypass domain-level blocklists.
+                targetUrl = `https://translate.google.com/translate?sl=auto&tl=en&hl=en&u=${encodeURIComponent(targetUrl)}`;
             } else if (selectedMode === 'C') {
-                // Future code for C
+                // Mode C (Aggressive Proxy): Forces ALL traffic through the CodeTabs API.
+                // You already use this for Discord/IG, but this mode applies it to everything.
+                targetUrl = `https://api.codetabs.com/v1/proxy/?quest=${targetUrl}`;
             } else if (selectedMode === 'D') {
-                // Do nothing
+                // Mode Standard: Do nothing, just pass the URL as-is.
             }
             
             const frame = document.getElementById('frame-' + activeTabId);
