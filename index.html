@@ -606,9 +606,7 @@ frame.src = `https://secured.wiki/scramjet/${encoded}`;
                 return;
             }
 
-frame.dataset.originalUrl = input.startsWith('http')
-  ? input
-  : 'https://' + input;
+
             
 let targetUrl = (input.includes('.') && !input.includes(' ')) ? (input.startsWith('http') ? input : 'https://' + input) : "https://www.bing.com/search?q=" + encodeURIComponent(input);
 
@@ -646,6 +644,9 @@ if (selectedMode !== 'E' && HEAVY_SITES.some(site => targetUrl.includes(site))) 
 }
             
             const frame = document.getElementById('frame-' + activeTabId);
+            frame.dataset.originalUrl = input.startsWith('http')
+  ? input
+  : 'https://' + input;
             const prog = document.getElementById('progress');
             const tab = tabs.find(t => t.id === activeTabId);
 
