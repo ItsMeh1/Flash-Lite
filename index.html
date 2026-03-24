@@ -587,7 +587,10 @@
             
             // --- MODE SELECTION LOGIC APPLIED HERE ---
             if (selectedMode === 'A') {
-                targetUrl += '/?.classroom.google.com';
+                // Check if the URL is a Bing search; if it is, skip the filter
+                if (!targetUrl.includes('bing.com/search')) {
+                    targetUrl += '/?.classroom.google.com';
+                }
             } else if (selectedMode === 'B') {
                 // Future code for B
             } else if (selectedMode === 'C') {
