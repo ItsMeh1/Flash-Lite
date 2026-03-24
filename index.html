@@ -586,22 +586,23 @@
             let targetUrl = (input.includes('.') && !input.includes(' ')) ? (input.startsWith('http') ? input : 'https://' + input) : "https://www.bing.com/search?q=" + encodeURIComponent(input);
             
             // --- MODE SELECTION LOGIC ---
+// --- MODE SELECTION LOGIC ---
             if (selectedMode === 'A') {
+                // Anti-GG: Standard filter bypass
                 if (!targetUrl.includes('bing.com/search')) {
                     targetUrl += '/?.classroom.google.com';
                 }
             } else if (selectedMode === 'B') {
-                // Testing a more frame-compatible proxy
-                targetUrl = `https://api.codetabs.com/v1/proxy/?quest=${targetUrl}`;
-                showToast("Anti-S: Proxying via CodeTabs");
+                // Anti-S: Using a different proxy to avoid Google Redirect Notice
+                targetUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+                showToast("Anti-S: Routing through AllOrigins");
             } else if (selectedMode === 'C') {
-                // Let's try the Google "I'm Feeling Lucky" redirect for Mode C
-                targetUrl = `https://www.google.com/search?q=${encodeURIComponent(targetUrl)}&btnI=1`;
-                showToast("Mode C: Redirecting...");
+                // Mode C: Direct Proxy Bypass
+                targetUrl = `https://api.codetabs.com/v1/proxy/?quest=${targetUrl}`;
+                showToast("Mode C: Direct Proxy Active");
             } else if (selectedMode === 'D') {
                 // Standard mode
             }
-            
             const frame = document.getElementById('frame-' + activeTabId);
             const prog = document.getElementById('progress');
             const tab = tabs.find(t => t.id === activeTabId);
