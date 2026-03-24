@@ -605,11 +605,16 @@ frame.src = `https://secured.wiki/scramjet/${encoded}`;
                 cloakApp();
                 return;
             }
-            frame.dataset.originalUrl = input.startsWith('http') ? input : 'https://' + input;
+const frame = document.getElementById('frame-' + activeTabId);
 
-            let targetUrl = (input.includes('.') && !input.includes(' ')) ? (input.startsWith('http') ? input : 'https://' + input) : "https://www.bing.com/search?q=" + encodeURIComponent(input);
+frame.dataset.originalUrl = input.startsWith('http')
+  ? input
+  : 'https://' + input;
+            
+let targetUrl = (input.includes('.') && !input.includes(' ')) ? (input.startsWith('http') ? input : 'https://' + input) : "https://www.bing.com/search?q=" + encodeURIComponent(input);
 
-            const HEAVY_SITES = ['youtube.com', 'discord.com', 'twitch.tv'];
+
+const HEAVY_SITES = ['youtube.com', 'discord.com', 'twitch.tv'];
 
 if (selectedMode !== 'E' && HEAVY_SITES.some(site => targetUrl.includes(site))) {
     const encoded = encodeURIComponent(targetUrl);
@@ -656,9 +661,7 @@ if (selectedMode !== 'E' && HEAVY_SITES.some(site => targetUrl.includes(site))) 
             frame.dataset.locked = "true";
             frame.dataset.safeUrl = targetUrl;
             
-            if (selectedMode !== 'E' && heavySites.some(s => targetUrl.includes(s))) {
-    frame.src = `https://api.codetabs.com/v1/proxy/?quest=${targetUrl}`;
-}
+
 
             prog.style.width = '100%';
             setTimeout(() => { prog.style.width = '0%'; }, 800);
