@@ -585,22 +585,21 @@
 
             let targetUrl = (input.includes('.') && !input.includes(' ')) ? (input.startsWith('http') ? input : 'https://' + input) : "https://www.bing.com/search?q=" + encodeURIComponent(input);
             
-            // --- MODE SELECTION LOGIC APPLIED HERE ---
+            // --- MODE SELECTION LOGIC ---
             if (selectedMode === 'A') {
-                // Anti-GG: Appends Google Classroom string (except for Bing searches)
                 if (!targetUrl.includes('bing.com/search')) {
                     targetUrl += '/?.classroom.google.com';
                 }
             } else if (selectedMode === 'B') {
-                // Anti-S (Translate Cloak): Routes the link through Google Translate.
-                // This is a classic trick to bypass domain-level blocklists.
-                targetUrl = `https://translate.google.com/translate?sl=auto&tl=en&hl=en&u=${encodeURIComponent(targetUrl)}`;
-            } else if (selectedMode === 'C') {
-                // Mode C (Aggressive Proxy): Forces ALL traffic through the CodeTabs API.
-                // You already use this for Discord/IG, but this mode applies it to everything.
+                // Testing a more frame-compatible proxy
                 targetUrl = `https://api.codetabs.com/v1/proxy/?quest=${targetUrl}`;
+                showToast("Anti-S: Proxying via CodeTabs");
+            } else if (selectedMode === 'C') {
+                // Let's try the Google "I'm Feeling Lucky" redirect for Mode C
+                targetUrl = `https://www.google.com/search?q=${encodeURIComponent(targetUrl)}&btnI=1`;
+                showToast("Mode C: Redirecting...");
             } else if (selectedMode === 'D') {
-                // Mode Standard: Do nothing, just pass the URL as-is.
+                // Standard mode
             }
             
             const frame = document.getElementById('frame-' + activeTabId);
