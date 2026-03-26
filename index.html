@@ -214,33 +214,33 @@
                 <button onclick="setMode('B')" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl font-medium text-gray-300 transition-colors text-left flex items-center justify-between group">
                     <div class="flex items-center gap-3">
                         <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 group-hover:bg-white/20 group-hover:text-white transition-all">B</div>
-                        <span class="font-bold">Google Proxy</span>
+                        <span class="font-bold">Code Tabs</span>
                     </div>
-                    <span class="text-xs opacity-60">Best way to troll School Admins.</span>
+                    <span class="text-xs opacity-60">API via CodeTabs. (Unreliable)</span>
                 </button>
                 
                 <button onclick="setMode('C')" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl font-medium text-gray-300 transition-colors text-left flex items-center justify-between group">
                     <div class="flex items-center gap-3">
                         <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 group-hover:bg-white/20 group-hover:text-white transition-all">C</div>
-                        <span class="font-bold">Code Tabs API</span>
+                        <span class="font-bold">All Origins</span>
                     </div>
-                    <span class="text-xs opacity-60">Highly unreliable for larger requests.</span>
+                    <span class="text-xs opacity-60">API via AllOrigins. (Unreliable)</span>
                 </button>
                 
                 <button onclick="setMode('D')" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl font-medium text-gray-300 transition-colors text-left flex items-center justify-between group">
                     <div class="flex items-center gap-3">
                         <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 group-hover:bg-white/20 group-hover:text-white transition-all">D</div>
-                        <span class="font-bold">Mode Standard</span>
+                        <span class="font-bold">Flash Relay</span>
                     </div>
-                    <span class="text-xs opacity-60">Standard URL, do nothing.</span>
+                    <span class="text-xs opacity-60">Flash Relays, Powered by Scramjet.</span>
                 </button>
                 <button onclick="setMode('E')" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 p-4 rounded-xl font-medium text-gray-300 transition-colors text-left flex items-center justify-between group">
-    <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 group-hover:bg-white/20 group-hover:text-white transition-all">E</div>
-        <span class="font-bold">Flash Relay</span>
-    </div>
-    <span class="text-xs opacity-60">Powered by Scramjet</span>
-</button>
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 group-hover:bg-white/20 group-hover:text-white transition-all">E</div>
+                        <span class="font-bold">Default</span>
+                    </div>
+                    <span class="text-xs opacity-60">Flash Lite without any add-ons.</span>
+                </button>
             </div>
         </div>
     </div>
@@ -344,7 +344,12 @@
         let activeTabId = null;
         let selectedMode = 'D'; // Default to D if nothing picked, though modal prevents bypassing
         // Scramjet URL KEYWORDS | scram, scramjet, sj, proxy, proxy links, that thingy
-        let SCRAMJET_BASE = "https://secured.wiki/scramjet/";
+        const RELAYS = [
+            "https://secured.wiki/scramjet/",
+            "https://edgenet.fly.dev/scramjet/",
+            "https://incog.dev/scramjet/",
+            "https://sj.4sure.win/scramjet/"
+        ];
         
         const DEFAULT_FAVORITES = [
             { title: 'Veck.io', url: 'https://veck.io', color: 'bg-purple-600/20', icon: 'crosshair' },
@@ -499,12 +504,26 @@
 
 const encoded = encodeURIComponent(frame.dataset.originalUrl);
 frame.src = `${SCRAMJET_BASE}${encoded}`;        
-        frame.src = `${SCRAMJET_BASE}${encoded}`;
+        
     } else {
         showToast("Load failed");
     }
 };
 
+frame.onload = () => {
+    try {
+        const test = frame.contentWindow.location.href;
+    } catch {
+        // Cross-origin = good sign for proxy
+        return;
+    }
+
+    // If it loads but stays blank or blocked
+    if (!frame.contentDocument || frame.contentDocument.body.innerHTML.length < 50) {
+        showToast("Broken relay, switching...");
+        frame.onerror();
+    }
+};
             frame.addEventListener('load', () => {
                 try {
                     const currentURL = frame.contentWindow.location.href;
@@ -550,8 +569,8 @@ frame.src = `${SCRAMJET_BASE}${encoded}`;
                 
                 const favImg = document.createElement('img');
                 favImg.className = 'tab-favicon';
-                if (t.url) {
-                    favImg.src = `https://www.google.com/s2/favicons?domain=${t.url}&sz=32`;
+    if (t.url && MODES[selectedMode].showTabData) {
+    favImg.src = `https://www.google.com/s2/favicons?domain=${t.url}&sz=32`;
                     favImg.onerror = () => { 
                         favImg.style.display = 'none';
                         const iconPlaceholder = document.createElement('i');
@@ -595,17 +614,76 @@ frame.src = `${SCRAMJET_BASE}${encoded}`;
             else renderTabs();
         }
 
-        async function processUrl(input) {
-            if (!input) return;
-            let query = input.trim().toLowerCase();
+function buildBaseUrl(input) {
+    if (input.includes('.') && !input.includes(' ')) {
+        return input.startsWith('http') ? input : 'https://' + input;
+    } else {
+        return "https://www.bing.com/search?q=" + encodeURIComponent(input);
+    }
+}
 
-            // REFINED VANISH DETECTION
-            if (query === '/vanish' || query === '?vanish' || query.endsWith('/vanish') || query.endsWith('?vanish')) {
-                document.getElementById('address-bar').value = '';
-                document.getElementById('home-input').value = '';
-                cloakApp();
-                return;
-            }
+function applyMode(url) {
+    const mode = MODES[selectedMode];
+    return mode.transform(url);
+}
+
+async function processUrl(input) {
+    if (!input) return;
+
+    let baseUrl = buildBaseUrl(input);
+
+    // Vanish command
+    if (
+        input === '/vanish' ||
+        input === '?vanish' ||
+        input.endsWith('/vanish') ||
+        input.endsWith('?vanish')
+    ) {
+        cloakApp();
+        return;
+    }
+
+    // Auto heavy-site relay (optional but cleaner)
+    const HEAVY_SITES = ['youtube.com', 'discord.com', 'twitch.tv'];
+    if (selectedMode !== 'D' && HEAVY_SITES.some(site => baseUrl.includes(site))) {
+        baseUrl = MODES.D.transform(baseUrl);
+        showToast("Auto: Flash Relay");
+    }
+
+    const finalUrl = applyMode(baseUrl);
+
+    const frame = document.getElementById('frame-' + activeTabId);
+    const tab = tabs.find(t => t.id === activeTabId);
+    const prog = document.getElementById('progress');
+
+    document.getElementById('home-view').classList.add('hidden');
+    prog.style.width = '30%';
+
+    frame.dataset.originalUrl = baseUrl;
+    if (MODES[selectedMode].isRelayMode) {
+    loadWithRelays(frame, baseUrl);
+} else {
+    frame.src = finalUrl;
+}
+
+    tab.url = finalUrl;
+
+    // Handle tab title cleanly
+    if (MODES[selectedMode].showTabData) {
+        try {
+            tab.title = new URL(baseUrl).hostname.replace('www.', '');
+        } catch {
+            tab.title = baseUrl;
+        }
+    } else {
+        tab.title = MODES[selectedMode].name;
+    }
+
+    renderTabs();
+
+    prog.style.width = '100%';
+    setTimeout(() => prog.style.width = '0%', 800);
+}
 
 
             
@@ -620,29 +698,50 @@ if (selectedMode !== 'E' && HEAVY_SITES.some(site => targetUrl.includes(site))) 
     showToast("Auto: Flash Relay");
 }
             
-            // --- MODE SELECTION LOGIC ---
-// --- MODE SELECTION LOGIC ---
-            if (selectedMode === 'A') {
-                // Anti-GG: Standard filter bypass
-                if (!targetUrl.includes('bing.com/search')) {
-                    targetUrl += '/?.classroom.google.com';
-                }
-            } else if (selectedMode === 'B') {
-                // Anti-S: Using a different proxy to avoid Google Redirect Notice
-                targetUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-                showToast("Anti-S: Routing through AllOrigins");
-            } else if (selectedMode === 'C') {
-                // Mode C: Direct Proxy Bypass
-                targetUrl = `https://api.codetabs.com/v1/proxy/?quest=${targetUrl}`;
-                showToast("Mode C: Direct Proxy Active");
-            } else if (selectedMode === 'D') {
-                // Standard mode
-            } else if (selectedMode === 'E') {
-    // Flash Relay (secured.wiki backend)
-    const encoded = encodeURIComponent(targetUrl);
-    targetUrl = `${SCRAMJET_BASE}${encoded}`;
-    showToast("Flash Relay Active");
-}
+// ==========================
+// MODE CONFIG SYSTEM
+// ==========================
+const MODES = {
+    A: {
+        name: "Anti-GG Filter",
+        transform: (url) => {
+            if (!url.includes("bing.com/search")) {
+                return url + "/?.classroom.google.com";
+            }
+            return url;
+        },
+        showTabData: true
+    },
+
+    B: {
+        name: "Code Tabs",
+        transform: (url) => {
+            return `https://api.codetabs.com/v1/proxy/?quest=${url}`;
+        },
+        showTabData: false
+    },
+
+    C: {
+        name: "All Origins",
+        transform: (url) => {
+            return `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        },
+        showTabData: false
+    },
+
+    D: {
+        name: "Flash Relays",
+        transform: (url) => url, // handled separately
+        showTabData: false,
+        isRelayMode: true
+    },
+
+    E: {
+        name: "Plain",
+        transform: (url) => url,
+        showTabData: true
+    }
+};
             
             const frame = document.getElementById('frame-' + activeTabId);
             frame.dataset.originalUrl = input.startsWith('http')
@@ -683,6 +782,33 @@ if (selectedMode !== 'E' && HEAVY_SITES.some(site => targetUrl.includes(site))) 
         function goBack() {
             try { document.getElementById('frame-' + activeTabId).contentWindow.history.back(); } catch(e) {}
         }
+
+        function loadWithRelays(frame, url) {
+    let index = 0;
+    const encoded = encodeURIComponent(url);
+
+    function tryNextRelay() {
+        if (index >= RELAYS.length) {
+            showToast("All relays failed 💀");
+            return;
+        }
+
+        const relayUrl = RELAYS[index] + encoded;
+        showToast(`Relay ${index + 1}/${RELAYS.length}`);
+
+        frame.src = relayUrl;
+
+        index++;
+    }
+
+    // First attempt
+    tryNextRelay();
+
+    frame.onerror = () => {
+        showToast("Relay failed, switching...");
+        tryNextRelay();
+    };
+}
 
         document.getElementById('address-bar').addEventListener('keypress', e => e.key === 'Enter' && processUrl(e.target.value));
         document.getElementById('home-input').addEventListener('keypress', e => e.key === 'Enter' && processUrl(e.target.value));
