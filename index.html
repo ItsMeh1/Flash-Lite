@@ -344,11 +344,28 @@
         let activeTabId = null;
         let selectedMode = 'D'; // Default to D if nothing picked, though modal prevents bypassing
         // Scramjet URL KEYWORDS | scram, scramjet, sj, proxy, proxy links, that thingy, relays
-        const RELAYS = [
-            "https://secured.wiki/scramjet/",
-            "https://incog.works/~/scramjet/",
-            "https://3e3c.org/scrammy/"
-        ];
+const RELAYS = [
+    {
+        name: "3e3c",
+        build: (url) => {
+            // force http ONLY
+            const httpUrl = url.replace("https://", "http://");
+            return "https://3e3c.org/scrammy/" + httpUrl;
+        }
+    },
+    {
+        name: "incog",
+        build: (url) => {
+            return "https://incog.works/~/scramjet/" + encodeURIComponent(url);
+        }
+    },
+    {
+        name: "secured",
+        build: (url) => {
+            return "https://secured.wiki/scramjet/" + url; // NOT encoded
+        }
+    }
+];
         
         const DEFAULT_FAVORITES = [
             { title: 'Veck.io', url: 'https://veck.io', color: 'bg-purple-600/20', icon: 'crosshair' },
@@ -751,9 +768,8 @@ function loadWithRelays(frame, url) {
             return;
         }
 
-        const relayUrl = RELAYS[index] + encoded;
-        showToast(`Relay ${index + 1}/${RELAYS.length}`);
-
+const relayUrl = RELAYS[index].build(url);
+showToast(`${RELAYS[index].name} (${index + 1}/${RELAYS.length})`);
         frame.src = relayUrl;
 
         // ⏱️ TIMEOUT (key fix)
