@@ -740,9 +740,10 @@ const MODES = {
             try { document.getElementById('frame-' + activeTabId).contentWindow.history.back(); } catch(e) {}
         }
 
-        function loadWithRelays(frame, url) {
+function loadWithRelays(frame, url) {
     let index = 0;
     const encoded = encodeURIComponent(url);
+    let timeoutId;
 
     function tryNextRelay() {
         if (index >= RELAYS.length) {
@@ -755,16 +756,28 @@ const MODES = {
 
         frame.src = relayUrl;
 
-        index++;
+        // ⏱️ TIMEOUT (key fix)
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            showToast("Relay too slow, switching...");
+            index++;
+            tryNextRelay();
+        }, 4000); // 4 seconds (tweak if needed)
     }
 
-    // First attempt
-    tryNextRelay();
+    frame.onload = () => {
+        clearTimeout(timeoutId);
+        showToast("Relay loaded ✅");
+    };
 
     frame.onerror = () => {
+        clearTimeout(timeoutId);
         showToast("Relay failed, switching...");
+        index++;
         tryNextRelay();
     };
+
+    tryNextRelay();
 }
 
         document.getElementById('address-bar').addEventListener('keypress', e => e.key === 'Enter' && processUrl(e.target.value));
