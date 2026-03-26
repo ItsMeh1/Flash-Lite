@@ -497,14 +497,11 @@
             // Track last known safe URL
             let lastSafeURL = '';
             
-            frame.onerror = () => {
+frame.onerror = () => {
     if (!frame.dataset.failedOnce) {
         frame.dataset.failedOnce = "true";
-        showToast("Retrying via Flash Relay...");
-
-const encoded = encodeURIComponent(frame.dataset.originalUrl);
-frame.src = `${SCRAMJET_BASE}${encoded}`;        
-        
+        showToast("Retrying via relays...");
+        loadWithRelays(frame, frame.dataset.originalUrl);
     } else {
         showToast("Load failed");
     }
@@ -643,12 +640,6 @@ async function processUrl(input) {
         return;
     }
 
-    // Auto heavy-site relay (optional but cleaner)
-    const HEAVY_SITES = ['youtube.com', 'discord.com', 'twitch.tv'];
-    if (selectedMode !== 'D' && HEAVY_SITES.some(site => baseUrl.includes(site))) {
-        baseUrl = MODES.D.transform(baseUrl);
-        showToast("Auto: Flash Relay");
-    }
 
     const finalUrl = applyMode(baseUrl);
 
@@ -686,17 +677,6 @@ async function processUrl(input) {
 }
 
 
-            
-let targetUrl = (input.includes('.') && !input.includes(' ')) ? (input.startsWith('http') ? input : 'https://' + input) : "https://www.bing.com/search?q=" + encodeURIComponent(input);
-
-
-const HEAVY_SITES = ['youtube.com', 'discord.com', 'twitch.tv'];
-
-if (selectedMode !== 'E' && HEAVY_SITES.some(site => targetUrl.includes(site))) {
-    const encoded = encodeURIComponent(targetUrl);
-    targetUrl = `${SCRAMJET_BASE}${encoded}`;
-    showToast("Auto: Flash Relay");
-}
             
 // ==========================
 // MODE CONFIG SYSTEM
@@ -743,29 +723,7 @@ const MODES = {
     }
 };
             
-            const frame = document.getElementById('frame-' + activeTabId);
-            frame.dataset.originalUrl = input.startsWith('http')
-  ? input
-  : 'https://' + input;
-            const prog = document.getElementById('progress');
-            const tab = tabs.find(t => t.id === activeTabId);
 
-            document.getElementById('home-view').classList.add('hidden');
-            prog.style.width = '30%';
-
-            tab.url = targetUrl;
-            try { tab.title = new URL(targetUrl).hostname.replace('www.', ''); } catch(e) { tab.title = targetUrl; }
-            renderTabs();
-
-            frame.src = targetUrl;
-            frame.dataset.locked = "true";
-            frame.dataset.safeUrl = targetUrl;
-            
-
-
-            prog.style.width = '100%';
-            setTimeout(() => { prog.style.width = '0%'; }, 800);
-        }
 
         function goHome() {
             const tab = tabs.find(t => t.id === activeTabId);
