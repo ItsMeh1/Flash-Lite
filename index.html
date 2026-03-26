@@ -524,19 +524,34 @@ frame.onerror = () => {
 };
 
 frame.onload = () => {
-    try {
-        const test = frame.contentWindow.location.href;
-    } catch {
-        // Cross-origin = good sign for proxy
-        return;
-    }
+    setTimeout(() => {
+        try {
+            const doc = frame.contentDocument;
 
-    // If it loads but stays blank or blocked
-    if (!frame.contentDocument || frame.contentDocument.body.innerHTML.length < 50) {
-        showToast("Broken relay, switching...");
-        frame.onerror();
-    }
+            // Detect stuck relay (like 3e3c)
+            if (!doc || doc.body.innerText.includes("Initializing content handler")) {
+                showToast("Relay stuck, switching...");
+                frame.onerror();
+                return;
+            }
+
+            // Detect empty / broken page
+            if (!doc || doc.body.innerHTML.length < 100) {
+                showToast("Blank relay, switching...");
+                frame.onerror();
+                return;
+            }
+
+            // Otherwise it's good
+            showToast("Relay loaded ✅");
+        } catch {
+            // Cross-origin = usually good proxy
+            showToast("Relay loaded (cross-origin) ✅");
+        }
+    }, 2000); // wait a bit to inspect content
 };
+
+            
             frame.addEventListener('load', () => {
                 try {
                     const currentURL = frame.contentWindow.location.href;
