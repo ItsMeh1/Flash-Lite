@@ -514,41 +514,35 @@ const RELAYS = [
             let lastSafeURL = '';
             
 frame.onerror = () => {
-    if (!frame.dataset.failedOnce) {
+    // Only auto-relay if we are actually IN Mode D or if the user wants it
+    if (selectedMode === 'D' && !frame.dataset.failedOnce) {
         frame.dataset.failedOnce = "true";
         showToast("Retrying via relays...");
         loadWithRelays(frame, frame.dataset.originalUrl);
+    } else if (selectedMode !== 'D') {
+        showToast("Site blocked connection (X-Frame-Options). Try Mode D.");
     } else {
         showToast("Load failed");
     }
 };
 
 frame.onload = () => {
+    // Only run these checks if we are actually using Relays
+    if (selectedMode !== 'D') return; 
+
     setTimeout(() => {
         try {
             const doc = frame.contentDocument;
-
-            // Detect stuck relay (like 3e3c)
             if (!doc || doc.body.innerText.includes("Initializing content handler")) {
                 showToast("Relay stuck, switching...");
-                frame.onerror();
+                frame.onerror(); 
                 return;
             }
-
-            // Detect empty / broken page
-            if (!doc || doc.body.innerHTML.length < 100) {
-                showToast("Blank relay, switching...");
-                frame.onerror();
-                return;
-            }
-
-            // Otherwise it's good
-            showToast("Relay loaded ✅");
-        } catch {
-            // Cross-origin = usually good proxy
+            // ... rest of your existing onload code
+        } catch (e) {
             showToast("Relay loaded (cross-origin) ✅");
         }
-    }, 2000); // wait a bit to inspect content
+    }, 2000);
 };
 
             
